@@ -17,7 +17,6 @@ server_url = os.environ['UPBIT_OPEN_API_SERVER_URL']
 upbit = pyupbit.Upbit(access_key, secret_key)
 
 _LAST_CHECKED_DATE = 0
-_LAST_CHECKED_MIN = 0
 _NOTIONAL_BALANCE = 3000000
 _MAXIMUM_RISK = 0.01
 
@@ -61,27 +60,26 @@ def clearOrders():
         upbit.cancel_order(orderId)
 
         # Clear every coin positions
-        leftCoin = upbit.get_balance(coin))
-        upbit.sell_market_order(coin, leftCoin))
+        leftCoin = upbit.get_balance(coin)
+        upbit.sell_market_order(coin, leftCoin)
 
 if __name__ == "__main__":
-    getAccountInfo()
-    today = datetime.date.today()
+    print("Start NR4 Trading")
 
-    if _LAST_CHECKED_DATE != today:
-        _LAST_CHECKED_DATE = today
-        # Cancle Orders
-        upbit.get_order("KRW-LTC")
+    while True:
+        today = datetime.date.today()
+        if _LAST_CHECKED_DATE != today:
+            _LAST_CHECKED_DATE = today
+            # Cancle Orders
+            upbit.get_order("KRW-LTC")
 
-        updateMarketInfo()
+            updateMarketInfo()
 
-    currentMin = datetime.time.minute()
-    if _LAST_CHECKED_MIN != currentMin:
         # Check Price
-        _LAST_CHECKED_MIN = currentMin
         coinList = getCoinList()
         print(pyupbit.get_current_price(coinList))
 
+        time.sleep(1)
 
     # 현재 계좌의 상황 체크하기
     # getAccountInfo()
