@@ -14,6 +14,7 @@ from datetime import date
 access_key = os.environ['UPBIT_OPEN_API_ACCESS_KEY']
 secret_key = os.environ['UPBIT_OPEN_API_SECRET_KEY']
 server_url = os.environ['UPBIT_OPEN_API_SERVER_URL']
+upbit = pyupbit.Upbit(access_key, secret_key)
 
 lastDate = 0
 
@@ -24,18 +25,7 @@ def getCurrentPrice(ticket):
     pprint.pprint(pyupbit.get_current_price(ticket))
 
 def getAccountInfo():
-    payload = {
-        'access_key': access_key,
-        'nonce': str(uuid.uuid4()),
-    }
-
-    jwt_token = jwt.encode(payload, secret_key)
-    authorize_token = 'Bearer {}'.format(jwt_token)
-    headers = {"Authorization": authorize_token}
-
-    res = requests.get(server_url + "/v1/accounts", headers=headers)
-
-    pprint.pprint(res.json())
+    print(upbit.get_balance("KRW"))
 
 def updateMarketInfo():
     coinList = getCoinList()
@@ -52,11 +42,11 @@ def updateMarketInfo():
                 print("Send buylimit order for {} on {} and SL on {}".format(coin, yesterdayInfo['high'], yesterdayInfo['low']))
 
 if __name__ == "__main__":
-    today = datetime.datetime.now()
-    currentDate = today.strftime('%Y-%m-%d')
+    getAccountInfo()
+    today = date.today()
 
-    if lastDate != currentDate:
-        lastDate = currentDate
+    if lastDate != today:
+        lastDate = today
         updateMarketInfo()
 
 
