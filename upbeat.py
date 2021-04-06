@@ -81,7 +81,7 @@ def clearOrders():
 
 
 if __name__ == "__main__":
-    print("Start NR4 Trading")
+    print("Start NR{} Trading".format(_ATR_BASE_TERM))
 
     f = open('OrderLog.csv', 'w', encoding='utf-8', newline='')
     wr = csv.writer(f)
