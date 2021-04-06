@@ -23,6 +23,7 @@ _MAXIMUM_RISK = 0.01
 
 _ATR_BASE_TERM = 4
 
+
 def getCoinList():
     return pyupbit.get_tickers(fiat="KRW")
 
@@ -47,7 +48,7 @@ def calculateUnitSize(coin, atr):
 
 def updateMarketInfo():
     coinList = getCoinList()
-    targetCoinDic = {}
+    targetCoinList = []
 
     for coin in coinList:
         time.sleep(0.1)
@@ -61,12 +62,12 @@ def updateMarketInfo():
         beforeYesterdayInfo = df.iloc[-2]
 
         if atrSeries[-1] == atrSeries.min():
-            if beforeYesterdayInfo['high'] >= yesterdayInfo['high'] and beforeYesterdayInfo['low'] <= yesterdayInfo['low']:
-                targetCoinDic[coin] = {'목표가': yesterdayInfo['high'], '손절가': yesterdayInfo['low'], '보유여부': False}
+            if beforeYesterdayInfo['high'] >= yesterdayInfo['high'] and \
+                    beforeYesterdayInfo['low'] <= yesterdayInfo['low']:
+                targetCoinList.append({'coin': coin, '목표가': yesterdayInfo['high'], '손절가': yesterdayInfo['low']})
 
-    marketInfoDf = pd.DataFrame(data=targetCoinDic).T
-    pprint.pprint(marketInfoDf)
-    return marketInfoDf
+    return targetCoinList
+
 
 def clearOrders():
     coinList = getCoinList()
@@ -85,17 +86,32 @@ if __name__ == "__main__":
 
     f = open('OrderLog.csv', 'w', encoding='utf-8', newline='')
     wr = csv.writer(f)
-    wr.writerow(['날짜', '코인이름', '목표가', '손절가', '실제 결과'])
+    wr.writerow(['날짜', '코인', '액션', '가격', '손익'])
     f.close()
-    todayMarketInfoDf = 0
+    todayTarget = []
+    targetDf = pd.DataFrame(columns=['목표가', '손절가', '보유여부'])
 
     while True:
         today = datetime.date.today()
-        if _LAST_CHECKED_DATE != today:
-            _TARGET_COIN_INFO = {}
+
+        if _LAST_CHECKED_DATE != today or len(todayTarget) == 0:
+            coinWithNoPosition = targetDf[targetDf['보유여부'] == False].index
+            targetDf = targetDf.drop(index=coinWithNoPosition)
+
             _LAST_CHECKED_DATE = today
 
-            todayMarketInfoDf = updateMarketInfo()
+            todayTarget = updateMarketInfo()
+
+        if len(todayTarget) == 0:
+            time.sleep(1)
+            continue
+
+        for coin in todayTarget:
+            targetDf.loc[coin['coin']] = [coin['목표가'], coin['손절가'], False]
+
+        pprint.pprint(targetDf)
+
+        break
 
         # Check Price
         coinList = todayMarketInfoDf.index
