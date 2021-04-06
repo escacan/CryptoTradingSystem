@@ -1,3 +1,4 @@
+import csv
 import os
 import uuid
 import time
@@ -20,14 +21,19 @@ _LAST_CHECKED_DATE = 0
 _NOTIONAL_BALANCE = 3000000
 _MAXIMUM_RISK = 0.01
 
+_ATR_BASE_TERM = 4
+
 def getCoinList():
     return pyupbit.get_tickers(fiat="KRW")
+
 
 def getCurrentPrice(ticket):
     pprint.pprint(pyupbit.get_current_price(ticket))
 
+
 def getAccountInfo():
     print(upbit.get_balance("KRW"))
+
 
 def calculateUnitSize(coin, atr):
     unitSize = 0
@@ -38,19 +44,29 @@ def calculateUnitSize(coin, atr):
     # calculate Maximum SL price
     # get Minimum Order Size
 
+
 def updateMarketInfo():
     coinList = getCoinList()
+    targetCoinDic = {}
+
     for coin in coinList:
         time.sleep(0.1)
-        df = pd.DataFrame(pyupbit.get_ohlcv(ticker= coin, interval= "day", count= 4))
-        atrSeries = pd.Series(data= df['high'] - df['low'], index=df.index)
+        df = pd.DataFrame(pyupbit.get_ohlcv(ticker=coin, interval="day", count=_ATR_BASE_TERM))
+        atrSeries = pd.Series(data=df['high'] - df['low'], index=df.index)
+
+        if len(df) < _ATR_BASE_TERM:
+            continue
 
         yesterdayInfo = df.iloc[-1]
         beforeYesterdayInfo = df.iloc[-2]
 
         if atrSeries[-1] == atrSeries.min():
             if beforeYesterdayInfo['high'] >= yesterdayInfo['high'] and beforeYesterdayInfo['low'] <= yesterdayInfo['low']:
-                print("Send buylimit order for {} on {} and SL on {}".format(coin, yesterdayInfo['high'], yesterdayInfo['low']))
+                targetCoinDic[coin] = {'목표가': yesterdayInfo['high'], '손절가': yesterdayInfo['low'], '보유여부': False}
+
+    marketInfoDf = pd.DataFrame(data=targetCoinDic).T
+    pprint.pprint(marketInfoDf)
+    return marketInfoDf
 
 def clearOrders():
     coinList = getCoinList()
@@ -63,21 +79,38 @@ def clearOrders():
         leftCoin = upbit.get_balance(coin)
         upbit.sell_market_order(coin, leftCoin)
 
+
 if __name__ == "__main__":
     print("Start NR4 Trading")
+
+    f = open('OrderLog.csv', 'w', encoding='utf-8', newline='')
+    wr = csv.writer(f)
+    wr.writerow(['날짜', '코인이름', '목표가', '손절가', '실제 결과'])
+    f.close()
+    todayMarketInfoDf = 0
 
     while True:
         today = datetime.date.today()
         if _LAST_CHECKED_DATE != today:
+            _TARGET_COIN_INFO = {}
             _LAST_CHECKED_DATE = today
-            # Cancle Orders
-            upbit.get_order("KRW-LTC")
 
-            updateMarketInfo()
+            todayMarketInfoDf = updateMarketInfo()
 
         # Check Price
-        coinList = getCoinList()
-        print(pyupbit.get_current_price(coinList))
+        coinList = todayMarketInfoDf.index
+        # print(pyupbit.get_current_price(coinList))
+        currentPrice = pd.Series(data=pyupbit.get_current_price(coinList))
+
+        pprint.pprint(currentPrice)
+        break
+        #
+        # for coin in coinList:
+        #     if coin in currentPrice.
+        #     if _MARKET_INFO.loc[coin]["조건달성"] is True and currentPrice[coin] >= _MARKET_INFO.loc[coin]['목표가']:
+        #         currentTime = datetime.datetime.strftime('%c')
+        #         print("{}:: Send order for {}".format(currentTime, coin))
+        #         time.sleep(0.1)
 
         time.sleep(1)
 
