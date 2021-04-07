@@ -36,14 +36,14 @@ def getAccountInfo():
     print(upbit.get_balance("KRW"))
 
 
-def calculateUnitSize(coin, atr):
+def calculateUnitSize(coin, stoploss):
     unitSize = 0
     print("Can order {} : {}".format(coin, unitSize))
 
     maximumSL = _NOTIONAL_BALANCE * _MAXIMUM_RISK
-    # get Dollar per point
-    # calculate Maximum SL price
-    # get Minimum Order Size
+
+    unitSize = maximumSL / stoploss
+    return unitSize
 
 
 def updateMarketInfo():
@@ -64,7 +64,9 @@ def updateMarketInfo():
         if atrSeries[-1] == atrSeries.min():
             if beforeYesterdayInfo['high'] >= yesterdayInfo['high'] and \
                     beforeYesterdayInfo['low'] <= yesterdayInfo['low']:
-                targetCoinList.append({'coin': coin, '목표가': yesterdayInfo['high'], '손절가': yesterdayInfo['low']})
+                stoploss = yesterdayInfo['high'] - yesterdayInfo['low']
+                unitSize = calculateUnitSize(coin, stoploss)
+                targetCoinList.append({'coin': coin, '목표가': yesterdayInfo['high'], '손절가': yesterdayInfo['low'], '주문수량': unitSize})
 
     return targetCoinList
 
@@ -89,7 +91,7 @@ if __name__ == "__main__":
     wr.writerow(['날짜', '코인', '액션', '가격', '손익'])
     f.close()
     todayTarget = []
-    targetDf = pd.DataFrame(columns=['목표가', '손절가', '보유여부'])
+    targetDf = pd.DataFrame(columns=['목표가', '손절가', '주문수량', '보유여부'])
 
     while True:
         today = datetime.date.today()
@@ -107,7 +109,7 @@ if __name__ == "__main__":
             continue
 
         for coin in todayTarget:
-            targetDf.loc[coin['coin']] = [coin['목표가'], coin['손절가'], False]
+            targetDf.loc[coin['coin']] = [coin['목표가'], coin['손절가'], coin['주문수량'], False]
 
         pprint.pprint(targetDf)
 
